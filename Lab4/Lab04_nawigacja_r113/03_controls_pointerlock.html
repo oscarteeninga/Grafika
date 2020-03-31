@@ -81,7 +81,10 @@
 
 			var ray;
 
-	
+			var mask;
+
+			var mobs = [];
+
 			var instructions = document.getElementById( 'instructions' );
 
 			// http://www.html5rocks.com/en/tutorials/pointerlock/intro/
@@ -171,10 +174,10 @@
 
 			function init() {
 
-				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
+				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 5000 );
 
 				scene = new THREE.Scene();
-				scene.fog = new THREE.Fog( 0xffffff, 0, 750 );
+				//scene.fog = new THREE.Fog( 0xffffff, 0, 8000);
 
 				var light = new THREE.DirectionalLight( 0xffffff, 1.5 );
 				light.position.set( 1, 1, 1 );
@@ -190,64 +193,23 @@
 				ray = new THREE.Raycaster();
 				ray.ray.direction.set( 0, -1, 0 );
 
+				// light
+				var light = new THREE.PointLight(0xffffff);
+				light.position.set(0,250,0);
+				scene.add(light);
+
+
+
 				// floor
 
-				geometry = new THREE.PlaneGeometry( 2000, 2000, 100, 100 );
-				geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
 
-				for ( var i = 0, l = geometry.vertices.length; i < l; i ++ ) {
-
-					var vertex = geometry.vertices[ i ];
-					vertex.x += Math.random() * 20 - 10;
-					vertex.y += Math.random() * 2;
-					vertex.z += Math.random() * 20 - 10;
+				// boxes
+				var cubeGeom = new THREE.CubeGeometry(500, 300, 30,1,1,1);
+				for (let i = 0; i < 100; i++) {
 
 				}
 
-				for ( var i = 0, l = geometry.faces.length; i < l; i ++ ) {
-
-					var face = geometry.faces[ i ];
-					face.vertexColors[ 0 ] = new THREE.Color().setHSL( Math.random() * 0.2 + 0.7, 0.75, Math.random() * 0.25 + 0.75 );
-					face.vertexColors[ 1 ] = new THREE.Color().setHSL( Math.random() * 0.2 + 0.7, 0.75, Math.random() * 0.25 + 0.75 );
-					face.vertexColors[ 2 ] = new THREE.Color().setHSL( Math.random() * 0.2 + 0.7, 0.75, Math.random() * 0.25 + 0.75 );
-
-				}
-
-				material = new THREE.MeshBasicMaterial( { vertexColors: THREE.VertexColors } );
-
-				mesh = new THREE.Mesh( geometry, material );
-				scene.add( mesh );
-
-				// objects
-
-				geometry = new THREE.BoxGeometry( 20, 20, 20 );
-
-				for ( var i = 0, l = geometry.faces.length; i < l; i ++ ) {
-
-					var face = geometry.faces[ i ];
-					face.vertexColors[ 0 ] = new THREE.Color().setHSL( Math.random() * 0.2 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
-					face.vertexColors[ 1 ] = new THREE.Color().setHSL( Math.random() * 0.2 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
-					face.vertexColors[ 2 ] = new THREE.Color().setHSL( Math.random() * 0.2 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
-
-				}
-
-				for ( var i = 0; i < 500; i ++ ) {
-
-					material = new THREE.MeshPhongMaterial( { specular: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors } );
-
-					var mesh = new THREE.Mesh( geometry, material );
-					mesh.position.x = Math.floor( Math.random() * 20 - 10 ) * 20;
-					mesh.position.y = Math.floor( Math.random() * 20 ) * 20 + 10;
-					mesh.position.z = Math.floor( Math.random() * 20 - 10 ) * 20;
-					scene.add( mesh );
-
-					material.color.setHSL( Math.random() * 0.2 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
-
-					objects.push( mesh );
-
-				}
-
-				//
+				// render smth
 
 				renderer = new THREE.WebGLRenderer();
 				renderer.setClearColor( 0xffffff );
@@ -255,26 +217,151 @@
 
 				document.body.appendChild( renderer.domElement );
 
-				//
+				// drawing homework
+				drawSkybox();
+				drawPath();
+				drawInterface();
+				drawEnemy();
 
 				window.addEventListener( 'resize', onWindowResize, false );
-
 			}
+
+			function drawSkybox() {
+				// skybox
+				var materialArray = [];
+				materialArray.push(new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( 'textures/DarkSea-xpos.jpg' ) }));
+				materialArray.push(new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( 'textures/DarkSea-xneg.jpg' ) }));
+				materialArray.push(new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( 'textures/DarkSea-ypos.jpg' ) }));
+				materialArray.push(new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( 'textures/DarkSea-yneg.jpg' ) }));
+				materialArray.push(new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( 'textures/DarkSea-zpos.jpg' ) }));
+				materialArray.push(new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( 'textures/DarkSea-zneg.jpg' ) }));
+
+				for (var i = 0; i < 6; i++) {
+					materialArray[i].side = THREE.BackSide;
+				}
+
+				var skyboxMaterial = new THREE.MeshFaceMaterial( materialArray );
+				var skyboxGeom = new THREE.BoxGeometry( 5000, 5000, 5000, 64, 64, 64 );
+				var skybox = new THREE.Mesh( skyboxGeom, skyboxMaterial );
+				scene.add( skybox );
+			}
+
+			function drawPath() {
+				// floor
+				var metalTexture = THREE.ImageUtils.loadTexture("textures/metal-floor.jpg");
+				var metalBump = THREE.ImageUtils.loadTexture("textures/metal-floor-normal.jpg");
+				var geometry = new THREE.PlaneGeometry( 150, 2500, 1, 1 );
+				metalTexture.wrapS = metalTexture.wrapT = THREE.RepeatWrapping; 
+				metalTexture.repeat.set( 4, 50 );
+				metalBump.wrapS = metalBump.wrapT = THREE.RepeatWrapping; 
+				metalBump.repeat.set( 3, 50 );
+				var material = new THREE.MeshPhongMaterial( { map:metalTexture, bumpMap:metalBump } );
+
+				var floor = new THREE.Mesh( geometry, material );
+				floor.position.set(0, -10, 0);
+				floor.rotation.x = -Math.PI/2;
+				scene.add( floor );
+
+				// boxes
+				var woodenTexture = THREE.ImageUtils.loadTexture("textures/floor-wood.jpg");
+				var cubeGeom = new THREE.CubeGeometry(25, 25, 25);
+				var boxMaterial = new THREE.MeshPhongMaterial( { map:woodenTexture, side:THREE.DoubleSide } );
+				for (let i = 0; i < 10; i++) {
+					var box = new THREE.Mesh (cubeGeom, boxMaterial);
+					box.position.set(Math.random()*125 - 62.5, 3, Math.random()*2400 - 1200);
+					scene.add(box);
+					objects.push(box);
+				}
+
+				// walls
+				var stoneTexture = THREE.ImageUtils.loadTexture("textures/stone.jpg");
+				stoneTexture.wrapS = stoneTexture.wrapT = THREE.RepeatWrapping; 
+				stoneTexture.repeat.set( 100, 2 );
+				var stoneBump = THREE.ImageUtils.loadTexture("textures/stone-bump.jpg");
+				stoneBump.wrapS = stoneTexture.wrapT = THREE.RepeatWrapping; 
+				stoneBump.repeat.set( 100, 2 );
+				var wallGeo = new THREE.CubeGeometry(2500, 40, 10);
+				var wallMaterial = new THREE.MeshBasicMaterial( { map:stoneTexture, bumpMap: stoneBump, side:THREE.DoubleSide });
+				var wall = new THREE.Mesh(wallGeo, wallMaterial);
+				wall.position.set(80, 10, 0);
+				wall.rotation.y = Math.PI/2;
+				scene.add(wall);
+				objects.push(wall);
+
+				var wall2 = new THREE.Mesh(wallGeo, wallMaterial);
+				wall2.position.set(-80, 10, 0);
+				wall2.rotation.y = Math.PI/2;
+				scene.add(wall2);
+				objects.push(wall2);
+
+				var wall3 = new THREE.Mesh(wallGeo, wallMaterial)
+			}
+
+			function drawEnemy() {
+				var mobGeo = new THREE.PlaneGeometry(15, 40);
+				var mobTexture = THREE.ImageUtils.loadTexture("textures/mob.png");
+				var mobMaterial = new THREE.MeshBasicMaterial({map: mobTexture, side:THREE.DoubleSide, transparent:true });
+				for (let i = 0; i < 10; i++) {
+					var mob = new THREE.Mesh(mobGeo, mobMaterial);
+					mob.position.set(Math.random()*125 - 62.5, 10, Math.random()*2400 - 1200);
+					mobs.push(mob);
+					scene.add(mob);
+				}
+				console.log(mobs.length);
+			}
+
+
+			function drawInterface() {
+				var weapGeo = new THREE.PlaneGeometry(3,2, 2, 2);
+				var weaponTexture = THREE.ImageUtils.loadTexture("textures/weapon.png");
+				var weapMaterial = new THREE.MeshBasicMaterial({map: weaponTexture, side:THREE.DoubleSide, transparent:true});
+				var weapon = new THREE.Mesh(weapGeo, weapMaterial);
+				weapon.position.set(2, -1.5, -3);
+				camera.add(weapon);
+
+				var aimGeo = new THREE.PlaneGeometry(0.1, 0.1, 1, 1);
+				var aimTexture = THREE.ImageUtils.loadTexture("textures/target.png");
+				var aimMaterial = new THREE.MeshBasicMaterial({map: aimTexture, side:THREE.DoubleSide, transparent:true});
+				var aim = new THREE.Mesh(aimGeo, aimMaterial);
+				aim.position.set(0, 0, -1);
+				camera.add(aim);
+
+				// drawing mask
+				drawMaska(window.innerWidth, window.innerHeight);
+			}
+
+			function drawMaska(width, height) {
+				// mask have to be drawn properly
+				var height_ = Math.max(2, height/450);
+				var width_ = Math.max(2*width/height, width/450);
+				var maskGeo = new THREE.PlaneGeometry(width_, height_, 1, 1);
+				var maskTexture = THREE.ImageUtils.loadTexture("textures/maska.png");
+				var maskMaterial = new THREE.MeshBasicMaterial({map: maskTexture, side:THREE.DoubleSide, transparent:true, opacity: 0.1});
+				mask = new THREE.Mesh(maskGeo, maskMaterial);
+				mask.position.set(0, 0, -1);
+				camera.add(mask);
+			}
+
 
 			function onWindowResize() {
 
 				camera.aspect = window.innerWidth / window.innerHeight;
 				camera.updateProjectionMatrix();
-
+				camera.remove(mask);
+				// mask size need to be changed when we change resolution
+				drawMaska(window.innerWidth, window.innerHeight);
 				renderer.setSize( window.innerWidth, window.innerHeight );
 
 			}
+
+
+			var a = 0;
 
 			function animate() {
 
 				requestAnimationFrame( animate );
 
-				//
+				// elements detection
 
 				controls.isOnObject( false );
 
@@ -296,6 +383,22 @@
 				}
 
 				controls.update( Date.now() - time );
+
+				if (a == 5) {
+					a = 0;
+					for (var mob in mobs) {
+						let x = mobs[mob].position.x;
+						let dx = Math.random() - 0.5;
+						if (dx + x > 62.5 || dx + x < -62.5) {
+						} else {
+							mobs[mob].position.x += dx;
+						}
+						mobs[mob].position.z += dx;
+					}
+				} else {
+					a++;
+				}
+
 
 				renderer.render( scene, camera );
 
