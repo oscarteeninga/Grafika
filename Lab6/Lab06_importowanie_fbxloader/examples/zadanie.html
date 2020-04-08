@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - FBX loader</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+	</head>
+
+	<body>
+		<div id="info">
+			<a href="http://threejs.org" target="_blank" rel="noopener">three.js</a> - FBXLoader<br />
+			Character and animation from <a href="https://www.mixamo.com/" target="_blank" rel="noopener">Mixamo</a>
+		</div>
+
+		<script type="module">
+
+			import * as THREE from '../build/three.module.js';
+
+			import Stats from './jsm/libs/stats.module.js';
+
+			import { OrbitControls } from './jsm/controls/OrbitControls.js';
+			import { FBXLoader } from './jsm/loaders/FBXLoader.js';
+
+			var container, stats, controls;
+			var camera, scene, renderer, light;
+
+			var clock = new THREE.Clock();
+
+			var mixers = [];
+			var dancers = 4;
+
+			init();
+			animate();
+
+			function init() {
+
+				container = document.createElement( 'div' );
+				document.body.appendChild( container );
+
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
+				camera.position.set(50, 200, 600 );
+
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color( 0xa0a0a0 );
+				scene.fog = new THREE.Fog( 0xa0a0a0, 200, 2000 );
+
+				light = new THREE.HemisphereLight( 0xffffff, 0x444444 );
+				light.position.set( 0, 200, 0 );
+				scene.add( light );
+
+				light = new THREE.DirectionalLight( 0xffffff );
+				light.position.set( 0, 200, 100 );
+				light.castShadow = true;
+				light.shadow.camera.top = 300;
+				light.shadow.camera.bottom = -300;
+				light.shadow.camera.left = - 300;
+				light.shadow.camera.right = 300;
+				scene.add( light );
+
+				// scene.add( new CameraHelper( light.shadow.camera ) );
+
+				// ground
+				var mesh = new THREE.Mesh( new THREE.PlaneBufferGeometry( 2000, 2000 ), new THREE.MeshPhongMaterial( { color: 0x999999, depthWrite: false } ) );
+				mesh.rotation.x = - Math.PI / 2;
+				mesh.receiveShadow = true;
+				scene.add( mesh );
+
+				var grid = new THREE.GridHelper( 2000, 20, 0x000000, 0x000000 );
+				grid.material.opacity = 0.2;
+				grid.material.transparent = true;
+				scene.add( grid );
+
+				// model brutal
+
+				var brutal_action;
+
+				var loader = new FBXLoader();
+
+				for (let i = 0; i < dancers; i++) {
+					loader.load('models.nosync/fbx/hiphopdancing.fbx', function (object) {
+						var mixer = new THREE.AnimationMixer(object);
+						var action = mixer.clipAction(object.animations[0]);
+						object.traverse(function (child) {
+							if (child.isMesh ) {
+								child.castShadow = true;
+								child.receiveShadow = true;
+							}
+						});
+						object.position.set(dancers*50-i*100, 0, 0);
+						scene.add(object);
+						action.play();
+						mixers.push(mixer);
+					});
+				}
+
+				for (let i = 0; i < dancers/2; i++) {
+					loader.load('models.nosync/fbx/hiphopmove.fbx', function (object) {
+						var mixer = new THREE.AnimationMixer(object);
+						var action = mixer.clipAction(object.animations[0]);
+						object.traverse(function (child) {
+							if (child.isMesh ) {
+								child.castShadow = true;
+								child.receiveShadow = true;
+							}
+						});
+						object.position.set(dancers/2*50-i*100, 0, 100);
+						scene.add(object);
+						action.play();
+						mixers.push(mixer);
+					});
+				}
+
+				loader.load('models.nosync/fbx/breakdancemove.fbx', function (object) {
+						var mixer = new THREE.AnimationMixer(object);
+						var action = mixer.clipAction(object.animations[0]);
+						object.traverse(function (child) {
+							if (child.isMesh ) {
+								child.castShadow = true;
+								child.receiveShadow = true;
+							}
+						});
+						object.position.set(50, 0, 250);
+						scene.add(object);
+						action.play();
+						mixers.push(mixer);
+					});
+				
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.shadowMap.enabled = true;
+				container.appendChild( renderer.domElement );
+
+				controls = new OrbitControls( camera, renderer.domElement );
+				controls.target.set( 0, 100, 0 );
+				controls.update();
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+				// stats
+				stats = new Stats();
+				container.appendChild( stats.dom );
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			//
+
+			var speed = 1.0;
+			var step = 1;
+			function animate() {
+
+				requestAnimationFrame( animate );
+
+				//speed *= (1+Math.sin(step++/10)/10);
+				var delta = clock.getDelta();
+				for (let i = 0; i < mixers.length; i++) {
+					if (mixers[i]) mixers[i].update(delta/speed);
+				}
+
+				renderer.render( scene, camera );
+
+				stats.update();
+
+			}
+
+		</script>
+
+	</body>
+</html>
